@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;}
+body{background:#eee;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:10px;}
+
+/* 登录容器 */
+.login-wrap{width:340px;padding:30px;background:#fff;border-radius:20px;box-shadow:0 4px 20px #00000018;}
+.login-title{text-align:center;font-size:20px;margin-bottom:24px;color:#222;}
+.input-item{margin-bottom:16px;}
+.input-item label{display:block;font-size:14px;color:#444;margin-bottom:6px;}
+.input-item input{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;font-size:15px;}
+#loginBtn{width:100%;padding:13px;border:none;border-radius:10px;background:#3478f6;color:#fff;font-size:16px;cursor:pointer;}
+#errTip{color:#ed4337;font-size:13px;text-align:center;margin-top:12px;display:none;}
+#loading{text-align:center;color:#666;margin-bottom:10px;display:none;}
+
+/* 手机界面（默认隐藏，登录成功才显示） */
+.phone{width:360px;height:680px;background:#111;border-radius:40px;padding:12px;overflow:hidden;position:relative;display:none;}
+.screen{width:100%;height:100%;background:#f8f8f8;border-radius:30px;overflow:hidden;position:relative;}
+.status-bar{height:32px;background:transparent;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:13px;color:#222;}
+.home{height:calc(100% - 32px);padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.app-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:default;}
+.app-icon{width:54px;height:54px;border-radius:14px;display:flex;justify-content:center;align-items:center;font-size:26px;color:white;}
+.app-name{font-size:12px;color:#222;}
+.app-mail .app-icon{background:#3478f6;cursor:pointer;}
+.app-tel .app-icon{background:#2cc069;}
+.app-setting .app-icon{background:#8e8e93;}
+.app-store .app-icon{background:#ff9500;}
+
+.msg-popup{position:absolute;top:40px;left:50%;transform:translateX(-50%);width:310px;background:rgba(255,255,255,0.94);border-radius:16px;padding:14px;box-shadow:0 4px 20px #00000022;display:none;z-index:10;}
+.msg-title{font-weight:600;font-size:14px;margin-bottom:4px;}
+.msg-content{font-size:13px;color:#444;}
+.msg-btn{margin-top:10px;text-align:right;}
+.msg-btn button{border:none;background:#3478f6;color:white;padding:5px 12px;border-radius:8px;font-size:13px;cursor:pointer;}
+
+.mail-page{position:absolute;top:0;left:0;width:100%;height:100%;background:#fff;z-index:20;display:none;overflow:auto;padding:30px 20px;}
+.mail-header{display:flex;align-items:center;margin-bottom:20px;gap:10px;}
+.back-btn{color:#3478f6;font-size:16px;cursor:pointer;}
+.mail-subject{font-size:17px;font-weight:500;}
+.mail-body{font-size:15px;line-height:1.7;color:#333;}
+</style>
+</head>
+<body>
+
+<!-- 登录页面 -->
+<div class="login-wrap" id="loginBox">
+    <div class="login-title">请登录</div>
+    <div id="loading">加载数据中...</div>
+    <div class="input-item">
+        <label>账号（CN）</label>
+        <input id="username" type="text" placeholder="输入CN">
+    </div>
+    <div class="input-item">
+        <label>密码（相识日期）</label>
+        <input id="password" type="text" placeholder="输入日期">
+    </div>
+    <button id="loginBtn">进入</button>
+    <div id="errTip">账号或密码错误，请重新输入</div>
+</div>
+
+<!-- 手机感谢信页面（登录成功才展示） -->
+<div class="phone" id="phonePage">
+<div class="screen">
+    <div class="status-bar">
+        <span>10:00</span>
+        <span>📶🔋</span>
+    </div>
+
+    <div class="home">
+        <div class="app-item app-tel">
+            <div class="app-icon">📞</div>
+            <div class="app-name">通讯</div>
+        </div>
+        <div class="app-item app-mail" id="mailIcon">
+            <div class="app-icon">✉️</div>
+            <div class="app-name">邮箱</div>
+        </div>
+        <div class="app-item app-setting">
+            <div class="app-icon">⚙️</div>
+            <div class="app-name">设置</div>
+        </div>
+        <div class="app-item app-store">
+            <div class="app-icon">🛒</div>
+            <div class="app-name">应用商店</div>
+        </div>
+    </div>
+
+    <div class="msg-popup" id="msgPopup">
+        <div class="msg-title">邮箱</div>
+        <div class="msg-content">你有一份新邮件</div>
+        <div class="msg-btn">
+            <button id="msgOpen">查看</button>
+        </div>
+    </div>
+
+    <div class="mail-page" id="mailPage">
+        <div class="mail-header">
+            <span class="back-btn" id="backHome">← 返回</span>
+            <span class="mail-subject">一封想写给你的感谢信</span>
+        </div>
+        <div class="mail-body" id="letterContent">
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+// ============ 替换成你的 Supabase 信息 ============
+const SUPABASE_URL = "https://nwffuwcihuaprwddlxqe.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Gk3nkh0_qmJ9Ns5Mmles0Q_sGYEa8mY";
+// ==================================================
+
+const { createClient } = supabase;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const loginBox = document.getElementById('loginBox');
+const phonePage = document.getElementById('phonePage');
+const errTip = document.getElementById('errTip');
+const loginBtn = document.getElementById('loginBtn');
+const usernameInput = document.getElementById('username');
+const passwordInput = document.getElementById('password');
+const loadingTip = document.getElementById('loading');
+const letterContent = document.getElementById('letterContent');
+
+const msgPopup = document.getElementById('msgPopup');
+const mailPage = document.getElementById('mailPage');
+const mailIcon = document.getElementById('mailIcon');
+const msgOpen = document.getElementById('msgOpen');
+const backHome = document.getElementById('backHome');
+
+let userList = [];
+
+// 从云端拉取全部信件
+async function loadLetters() {
+    loadingTip.style.display = "block";
+    const { data, error } = await supabase.from('letters').select('*');
+    loadingTip.style.display = "none";
+    if(!error) userList = data;
+}
+loadLetters();
+
+loginBtn.onclick = async function(){
+    const name = usernameInput.value.trim();
+    const pwd = passwordInput.value.trim();
+    const findUser = userList.find(u => u.cn === name && u.date === pwd);
+    if(findUser){
+        errTip.style.display = 'none';
+        loginBox.style.display = 'none';
+        phonePage.style.display = 'block';
+        letterContent.innerHTML = findUser.content.replaceAll('\n','<br>');
+        setTimeout(()=>{
+            msgPopup.style.display = 'block';
+        },7000);
+    }else{
+        errTip.style.display = 'block';
+    }
+}
+
+// 回车登录
+passwordInput.addEventListener('keydown',function(e){
+    if(e.key === 'Enter') loginBtn.click();
+})
+
+msgOpen.onclick = ()=>{
+    msgPopup.style.display = 'none';
+    mailPage.style.display = 'block';
+}
+mailIcon.onclick = ()=>{
+    msgPopup.style.display = 'none';
+    mailPage.style.display = 'block';
+}
+backHome.onclick = ()=>{
+    mailPage.style.display = 'none';
+}
+</script>
+</body>
+</html>
