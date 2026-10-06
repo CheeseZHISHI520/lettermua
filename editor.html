@@ -2,110 +2,23 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>信件编辑器</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;}
-body{background:#f4f4f4;padding:20px;}
-.container{max-width:700px;margin:0 auto;}
-h1{text-align:center;margin-bottom:30px;color:#222;}
-.card{background:#fff;padding:24px;border-radius:16px;margin-bottom:20px;box-shadow:0 2px 12px #00000012;}
-.item{margin-bottom:16px;}
-label{display:block;margin-bottom:6px;font-weight:500;color:#333;}
-input,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:15px;}
-textarea{min-height:180px;resize:vertical;}
-button{padding:10px 16px;border:none;border-radius:8px;cursor:pointer;font-size:15px;margin-right:8px;margin-top:8px;}
-#addBtn{background:#2563eb;color:white;}
-.delBtn{background:#ef4444;color:white;}
-.list-item{padding:14px;border-bottom:1px solid #eee;}
-.tip{color:#228b22;text-align:center;margin:10px 0;display:none;}
-</style>
+<title>测试提交</title>
 </head>
 <body>
-<div class="container">
-    <h1>感谢信后台编辑器</h1>
-    <div class="card">
-        <div class="item">
-            <label>CN（账号）</label>
-            <input id="cnInput" placeholder="例如：芝士">
-        </div>
-        <div class="item">
-            <label>日期（密码）</label>
-            <input id="dateInput" placeholder="例如：0423">
-        </div>
-        <div class="item">
-            <label>感谢信内容</label>
-            <textarea id="contentInput" placeholder="在这里写感谢信"></textarea>
-        </div>
-        <button id="addBtn">添加到云端</button>
-        <div id="tip" class="tip">保存成功！网页A会实时更新</div>
-    </div>
-
-    <div class="card">
-        <h3>已存在的信件列表</h3>
-        <div id="listWrap"></div>
-    </div>
+<div>
+CN (账号)<input id="cn"><br>
+日期 (密码)<input id="pwd"><br>
+感谢信内容<textarea id="content"></textarea><br>
+<button onclick="addData()">添加到云端</button>
 </div>
 
 <script>
-// ============ 你的 Supabase 信息 ============
-const SUPABASE_URL = "https://nwffuwcihuaprwddlxqe.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_Gk3nkh0_qmJ9Ns5Mmles0Q_sGYEa8mY";
-// ============================================
-const { createClient } = supabase;
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const cnInput = document.getElementById('cnInput');
-const dateInput = document.getElementById('dateInput');
-const contentInput = document.getElementById('contentInput');
-const addBtn = document.getElementById('addBtn');
-const tip = document.getElementById('tip');
-const listWrap = document.getElementById('listWrap');
-
-// 读取并渲染列表
-async function renderList(){
-    listWrap.innerHTML = "";
-    const {data,error} = await supabase.from('letters').select('*');
-    if(error) return;
-    data.forEach(item=>{
-        const div = document.createElement('div');
-        div.className = "list-item";
-        div.innerHTML = `
-            <div>CN：${item.cn}</div>
-            <div>密码：${item.date}</div>
-            <button class="delBtn" data-id="${item.id}">删除</button>
-        `;
-        listWrap.appendChild(div);
-    })
-    // 删除事件
-    document.querySelectorAll('.delBtn').forEach(btn=>{
-        btn.onclick = async ()=>{
-            const id = btn.dataset.id;
-            await supabase.from('letters').delete().eq('id',id);
-            renderList();
-        }
-    })
-}
-renderList();
-
-// 添加新信件
-addBtn.onclick = async ()=>{
-    const cn = cnInput.value.trim();
-    const date = dateInput.value.trim();
-    const content = contentInput.value.trim();
-    if(!cn||!date||!content){
-        alert("CN、日期、信件内容不能为空");
-        return;
-    }
-    await supabase.from('letters').insert([{cn,date,content}]);
-    tip.style.display = "block";
-    setTimeout(()=>tip.style.display="none",2000);
-    cnInput.value = "";
-    dateInput.value = "";
-    contentInput.value = "";
-    renderList();
+// 先写一个纯本地测试函数，不碰Supabase
+function addData(){
+  alert("✅按钮点击成功！JS能执行");
+  console.log("cn:",document.getElementById("cn").value);
 }
 </script>
 </body>
 </html>
+
